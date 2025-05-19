@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Обработка изображений</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</head>
+
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="text-center mb-0">Обработка изображений</h2>
+                    </div>
+                    <div class="card-body">
+                        {% if error %}
+                        <div class="alert alert-danger">{{ error }}</div>
+                        {% endif %}
+
+                        <form method="post" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="image" class="form-label">Выберите изображение:</label>
+                                <input class="form-control" type="file" id="image" name="image" accept="image/*"
+                                    required>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="cross_type" class="form-label">Тип креста:</label>
+                                    <select class="form-select" id="cross_type" name="cross_type">
+                                        <option value="vertical">Вертикальный</option>
+                                        <option value="horizontal">Горизонтальный</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="color" class="form-label">Цвет креста:</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="color"
+                                            name="color" value="#FF0000" title="Выберите цвет">
+                                        <span class="input-group-text" id="color-preview"
+                                            style="background-color: #FF0000;"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="g-recaptcha" data-sitekey="{{ site_key }}"></div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 py-2">Обработать</button>
+                        </form>
+
+                        {% if original_plot %}
+                        <hr class="my-4">
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <h4 class="text-center mb-3">Исходное изображение</h4>
+                                <img src="data:image/png;base64,{{ original_plot }}" class="img-fluid border rounded">
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <h4 class="text-center mb-3">Обработанное изображение</h4>
+                                <img src="data:image/png;base64,{{ processed_img }}" class="img-fluid border rounded">
+                            </div>
+                            <div class="col-12">
+                                <h4 class="text-center mb-3">Распределение цветов (обработанное)</h4>
+                                <img src="data:image/png;base64,{{ processed_plot }}" class="img-fluid border rounded">
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('color').addEventListener('input', function () {
+            document.getElementById('color-preview').style.backgroundColor = this.value;
+        });
+    </script>
+</body>
+
+</html>
