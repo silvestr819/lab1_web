@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Cross Processor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Добавление креста на изображение</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="file">Выберите изображение:</label>
+                <input type="file" id="file" name="file" accept=".png,.jpg,.jpeg" required>
+            </div>
+
+            <div class="form-group">
+                <label for="cross_type">Тип креста:</label>
+                <select id="cross_type" name="cross_type" required>
+                    <option value="vertical">Вертикальный (вертикальная линия длиннее)</option>
+                    <option value="horizontal">Горизонтальный (горизонтальная линия длиннее)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="cross_color">Цвет креста:</label>
+                <input type="color" id="cross_color" name="cross_color" value="#ff0000" required>
+            </div>
+
+            <div class="g-recaptcha" data-sitekey="{{ site_key }}"></div>
+
+            <button type="submit">Обработать</button>
+        </form>
+    </div>
+</body>
+
+</html>

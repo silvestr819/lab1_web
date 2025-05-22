@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Результаты обработки</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Результаты обработки изображения</h1>
+
+        <div class="results-container">
+            <div class="image-section">
+                <h2>Исходное изображение</h2>
+                <img src="{{ url_for('static', filename=original_image.split('static/')[1]) }}" alt="Original Image">
+                <h3>Распределение цветов</h3>
+                <img src="data:image/png;base64,{{ original_chart }}" alt="Original Color Distribution">
+            </div>
+
+            <div class="image-section">
+                <h2>Обработанное изображение</h2>
+                <img src="{{ url_for('static', filename=processed_image.split('static/')[1]) }}" alt="Processed Image">
+                <h3>Распределение цветов</h3>
+                <img src="data:image/png;base64,{{ processed_chart }}" alt="Processed Color Distribution">
+            </div>
+        </div>
+
+        <a href="{{ url_for('index') }}" class="btn">Назад</a>
+    </div>
+</body>
+
+</html>
