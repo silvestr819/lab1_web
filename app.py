@@ -1,167 +1,168 @@
 import os
+import uuid
 from flask import Flask, render_template, request, redirect, url_for, flash
-from werkzeug.utils import secure_filename
 from PIL import Image, ImageDraw
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # Важно для работы без GUI
 import matplotlib.pyplot as plt
 from io import BytesIO
 import base64
-import config
+import requests  # Для проверки капчи
+
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['PROCESSED_FOLDER'] = 'static/processed'
-app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
+app.secret_key = 'your-secret-key-here'
+app.config.update({
+    'UPLOAD_FOLDER': 'static/uploads',
+    'PROCESSED_FOLDER': 'static/processed',
+    'ALLOWED_EXTENSIONS': {'png', 'jpg', 'jpeg'},
+    'RECAPTCHA_SITE_KEY': '6Ld5_T0rAAAAALMXTbqPxkuW5R-Aue_iGL9iO4Cg',  # Замените на свой
+    'RECAPTCHA_SECRET_KEY': '6Ld5_T0rAAAAAHLswPCK1P9Homm6nAvssE-l_dtC'  # Замените на свой
+})
 
-# Конфигурация reCAPTCHA
-app.config['RECAPTCHA_SITE_KEY'] = config.RECAPTCHA_SITE_KEY
-app.config['RECAPTCHA_SECRET_KEY'] = config.RECAPTCHA_SECRET_KEY
+# Создаем папки, если их нет
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-def add_cross(image_path, cross_type, cross_color, output_path):
-    img = Image.open(image_path)
-    draw = ImageDraw.Draw(img)
-    width, height = img.size
-    
-    if cross_type == 'vertical':
-        # Вертикальный крест (вертикальная линия длиннее)
-        vertical_width = width // 3
-        horizontal_width = height // 5
-        
-        # Вертикальная линия
-        left = (width - vertical_width) // 2
-        top = (height - horizontal_width) // 2
-        right = left + vertical_width
-        bottom = top + horizontal_width
-        draw.rectangle([left, 0, right, height], fill=cross_color)
-        
-        # Горизонтальная линия
-        left = 0
-        top = (height - horizontal_width) // 2
-        right = width
-        bottom = top + horizontal_width
-        draw.rectangle([left, top, right, bottom], fill=cross_color)
-    else:
-        # Горизонтальный крест (горизонтальная линия длиннее)
-        vertical_width = width // 5
-        horizontal_width = height // 3
-        
-        # Вертикальная линия
-        left = (width - vertical_width) // 2
-        top = (height - horizontal_width) // 2
-        right = left + vertical_width
-        bottom = top + horizontal_width
-        draw.rectangle([left, 0, right, height], fill=cross_color)
-        
-        # Горизонтальная линия
-        left = 0
-        top = (height - horizontal_width) // 2
-        right = width
-        bottom = top + horizontal_width
-        draw.rectangle([left, top, right, bottom], fill=cross_color)
-    
-    img.save(output_path)
-    return img
-
-def create_color_distribution_chart(image_path):
-    img = Image.open(image_path)
-    img = img.convert('RGB')
-    pixels = list(img.getdata())
-    
-    # Получаем уникальные цвета и их количество
-    unique_colors, counts = np.unique(pixels, axis=0, return_counts=True)
-    total_pixels = len(pixels)
-    
-    # Ограничиваем количество цветов до 10
-    if len(unique_colors) > 10:
-        # Берем 10 самых распространенных цветов
-        sorted_indices = np.argsort(counts)[::-1][:10]
-        unique_colors = unique_colors[sorted_indices]
-        counts = counts[sorted_indices]
-    
-    # Преобразуем цвета в hex
-    colors = [f'#{r:02x}{g:02x}{b:02x}' for r, g, b in unique_colors]
-    percentages = [(count / total_pixels) * 100 for count in counts]
-    
-    # Создаем круговую диаграмму
-    plt.figure(figsize=(8, 8))
-    plt.pie(percentages, labels=colors, colors=colors, startangle=90)
-    plt.axis('equal')
-    plt.title('Color Distribution')
-    
-    # Сохраняем в буфер
-    buf = BytesIO()
-    plt.savefig(buf, format='png')
-    buf.seek(0)
-    plt.close()
-    
-    # Преобразуем в base64
-    image_base64 = base64.b64encode(buf.read()).decode('utf-8')
-    buf.close()
-    
-    return image_base64
-
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        # Проверка reCAPTCHA
-        if not verify_recaptcha(request.form.get('g-recaptcha-response')):
-            flash('Пожалуйста, пройдите проверку reCAPTCHA', 'error')
-            return redirect(url_for('index'))
-        
-        # Проверка загруженного файла
-        if 'file' not in request.files:
-            flash('Файл не загружен', 'error')
-            return redirect(url_for('index'))
-        
-        file = request.files['file']
-        if file.filename == '':
-            flash('Не выбран файл', 'error')
-            return redirect(url_for('index'))
-        
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            original_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(original_path)
-            
-            cross_type = request.form.get('cross_type')
-            cross_color = request.form.get('cross_color')
-            
-            processed_filename = f'processed_{filename}'
-            processed_path = os.path.join(app.config['PROCESSED_FOLDER'], processed_filename)
-            
-            # Добавляем крест на изображение
-            processed_img = add_cross(original_path, cross_type, cross_color, processed_path)
-            
-            # Создаем графики распределения цветов
-            original_chart = create_color_distribution_chart(original_path)
-            processed_chart = create_color_distribution_chart(processed_path)
-            
-            return render_template('results.html', 
-                                 original_image=original_path, 
-                                 processed_image=processed_path,
-                                 original_chart=original_chart,
-                                 processed_chart=processed_chart)
-        else:
-            flash('Недопустимый формат файла. Разрешены: png, jpg, jpeg', 'error')
-    
-    return render_template('index.html', site_key=app.config['RECAPTCHA_SITE_KEY'])
+def generate_unique_filename(original_filename):
+    ext = original_filename.rsplit('.', 1)[1].lower()
+    return f"{uuid.uuid4().hex}.{ext}"
 
 def verify_recaptcha(response):
     if not response:
         return False
+    data = {
+        'secret': app.config['RECAPTCHA_SECRET_KEY'],
+        'response': response
+    }
+    try:
+        result = requests.post(
+            'https://www.google.com/recaptcha/api/siteverify',
+            data=data,
+            timeout=5
+        ).json()
+        return result.get('success', False)
+    except requests.RequestException:
+        return False
+
+def add_cross(img, cross_type, cross_color):
+    draw = ImageDraw.Draw(img)
+    width, height = img.size
     
-    # Здесь должна быть реализация проверки reCAPTCHA через API Google
-    # Для упрощения в учебных целях пропускаем реальную проверку
-    return True
+    thickness = int(min(width, height) * 0.05)
+    
+    if cross_type == 'vertical':
+        v_length = height * 0.8  # Вертикальная линия длиннее
+        h_length = width * 0.5
+    else:
+        h_length = width * 0.8   # Горизонтальная линия длиннее
+        v_length = height * 0.5
+    
+    # Вертикальная линия (центрированная)
+    v_x = width // 2
+    draw.rectangle([
+        (v_x - thickness//2, (height - v_length)//2),
+        (v_x + thickness//2, (height + v_length)//2)
+    ], fill=cross_color)
+    
+    # Горизонтальная линия (центрированная)
+    draw.rectangle([
+        ((width - h_length)//2, height//2 - thickness//2),
+        ((width + h_length)//2, height//2 + thickness//2)
+    ], fill=cross_color)
+    
+    return img
+
+def create_color_chart(img):
+    img = img.convert('RGB')
+    pixels = np.array(img)
+    colors, counts = np.unique(pixels.reshape(-1, 3), axis=0, return_counts=True)
+    total_pixels = pixels.shape[0] * pixels.shape[1]
+    
+    # Берем топ-10 цветов или меньше, если их меньше
+    n_colors = min(10, len(colors))
+    top_colors = colors[np.argsort(-counts)[:n_colors]]
+    top_counts = counts[np.argsort(-counts)[:n_colors]]
+    
+    # Создаем график
+    plt.figure(figsize=(8, 8))
+    if n_colors > 0:
+        labels = [f'#{r:02x}{g:02x}{b:02x}' for r, g, b in top_colors]
+        sizes = top_counts / total_pixels * 100
+        colors_rgb = [(r/255, g/255, b/255) for r, g, b in top_colors]
+        
+        plt.pie(sizes, labels=labels, colors=colors_rgb,
+                autopct='%1.1f%%', startangle=90)
+        plt.axis('equal')
+        plt.title('Распределение цветов', pad=20)
+    else:
+        plt.text(0.5, 0.5, 'Нет данных о цветах', 
+                ha='center', va='center')
+    
+    # Сохраняем в base64
+    buf = BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', dpi=100)
+    plt.close()
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode('utf-8')
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        # Проверка капчи
+        if not verify_recaptcha(request.form.get('g-recaptcha-response')):
+            flash('Пожалуйста, пройдите проверку reCAPTCHA', 'error')
+            return redirect(request.url)
+        
+        if 'file' not in request.files:
+            flash('Файл не загружен', 'error')
+            return redirect(request.url)
+        
+        file = request.files['file']
+        if file.filename == '':
+            flash('Не выбран файл', 'error')
+            return redirect(request.url)
+        
+        if file and allowed_file(file.filename):
+            try:
+                filename = generate_unique_filename(file.filename)
+                original_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                processed_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
+                
+                file.save(original_path)
+                
+                with Image.open(original_path) as img:
+                    # Создаем график для исходного изображения
+                    original_chart = create_color_chart(img.copy())
+                    
+                    # Добавляем крест
+                    processed_img = add_cross(img.copy(), 
+                                           request.form.get('cross_type', 'vertical'),
+                                           request.form.get('cross_color', '#FF0000'))
+                    processed_img.save(processed_path)
+                    
+                    # Создаем график для обработанного изображения
+                    processed_chart = create_color_chart(processed_img)
+                
+                return render_template('results.html',
+                                    original_image=filename,
+                                    processed_image=filename,
+                                    original_chart=original_chart,
+                                    processed_chart=processed_chart,
+                                    site_key=app.config['RECAPTCHA_SITE_KEY'])
+            
+            except Exception as e:
+                flash(f'Ошибка обработки: {str(e)}', 'error')
+                return redirect(request.url)
+        
+        flash('Недопустимый формат файла. Разрешены: PNG, JPG, JPEG', 'error')
+    
+    return render_template('index.html', site_key=app.config['RECAPTCHA_SITE_KEY'])
 
 if __name__ == '__main__':
-    if not os.path.exists(app.config['UPLOAD_FOLDER']):
-        os.makedirs(app.config['UPLOAD_FOLDER'])
-    if not os.path.exists(app.config['PROCESSED_FOLDER']):
-        os.makedirs(app.config['PROCESSED_FOLDER'])
     app.run(debug=True)
