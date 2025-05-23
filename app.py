@@ -11,9 +11,13 @@ import base64
 import requests
 import config
 
-app = Flask(__name__)
-app.secret_key = config.SECRET_KEY
-app.config.from_object(config)
+def create_app():
+    app = Flask(__name__)
+    app.secret_key = config.SECRET_KEY
+    app.config.from_object(config)
+    return app
+
+app = create_app()
 
 # Для тестирования
 if os.environ.get('TESTING') == 'true':
