@@ -15,6 +15,10 @@ app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
 app.config.from_object(config)
 
+# Для тестирования
+if os.environ.get('TESTING') == 'true':
+    app.config['TESTING'] = True
+
 # Создаем папки для загрузок
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
