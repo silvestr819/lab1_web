@@ -23,7 +23,7 @@ def client(app):
 @pytest.fixture
 def runner(app):
     """A test runner for the app's Click commands."""
-    return app.test_cli_runner()
+    return app.test_cli_runner() 
 
 def test_allowed_file():
     assert allowed_file('test.jpg') is True
