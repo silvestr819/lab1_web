@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Результаты обработки</title>
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -26,13 +25,13 @@
         h1 {
             color: #333;
             text-align: center;
-            margin-bottom: 30px;
         }
 
         .results-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 30px;
+            gap: 20px;
+            margin-top: 30px;
         }
 
         .image-section {
@@ -48,49 +47,43 @@
             margin-top: 0;
         }
 
-        .image-container {
+        .image-wrapper {
             text-align: center;
             margin: 15px 0;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
-        .image-container img {
+        .image-wrapper img {
             max-width: 100%;
             max-height: 300px;
-            border: 1px solid #ddd;
-            object-fit: contain;
+            margin: 0 auto;
+            display: block;
         }
 
-        .chart-container {
-            margin-top: 20px;
-        }
-
-        .chart-container img {
-            max-width: 100%;
-            border: 1px solid #eee;
+        .error-message {
+            color: red;
+            text-align: center;
+            padding: 10px;
         }
 
         .btn-back {
             display: block;
             width: 200px;
-            margin: 40px auto 0;
-            padding: 12px;
+            margin: 30px auto 0;
+            padding: 10px;
             text-align: center;
             background: #4a76a8;
             color: white;
             text-decoration: none;
             border-radius: 5px;
             font-weight: bold;
-            font-size: 16px;
         }
 
         .btn-back:hover {
             background: #3a5f8a;
-        }
-
-        .error-message {
-            color: red;
-            text-align: center;
-            margin: 10px 0;
         }
     </style>
 </head>
@@ -102,41 +95,46 @@
         <div class="results-grid">
             <div class="image-section">
                 <h2>Исходное изображение</h2>
-                <div class="image-container">
+                <div class="image-wrapper" id="original-image-container">
                     <img src="{{ url_for('static', filename='uploads/' + original_image) }}" alt="Original Image"
-                        onerror="this.onerror=null;this.src='';this.parentNode.innerHTML+='<div class=\"
-                        error-message\">Ошибка загрузки изображения
-                </div>'">
+                        onerror="handleImageError(this.parentNode)">
+                </div>
+                <h3>Распределение цветов</h3>
+                <div class="image-wrapper" id="original-chart-container">
+                    <img src="data:image/png;base64,{{ original_chart }}" alt="Color Distribution Chart"
+                        onerror="handleImageError(this.parentNode)">
+                </div>
             </div>
-            <div class="chart-container">
-                <h3>Распределение цветов:</h3>
-                <img src="data:image/png;base64,{{ original_chart }}" alt="Original Color Chart"
-                    onerror="this.onerror=null;this.src='';this.parentNode.innerHTML+='<div class=\"
-                    error-message\">Ошибка загрузки диаграммы
-            </div>'">
+
+            <div class="image-section">
+                <h2>Обработанное изображение</h2>
+                <div class="image-wrapper" id="processed-image-container">
+                    <img src="{{ url_for('static', filename='processed/' + processed_image) }}" alt="Processed Image"
+                        onerror="handleImageError(this.parentNode)">
+                </div>
+                <h3>Распределение цветов</h3>
+                <div class="image-wrapper" id="processed-chart-container">
+                    <img src="data:image/png;base64,{{ processed_chart }}" alt="Color Distribution Chart"
+                        onerror="handleImageError(this.parentNode)">
+                </div>
+            </div>
         </div>
+
+        <a href="{{ url_for('index') }}" class="btn-back">Назад к загрузке</a>
     </div>
 
-    <div class="image-section">
-        <h2>Обработанное изображение</h2>
-        <div class="image-container">
-            <img src="{{ url_for('static', filename='processed/' + processed_image) }}" alt="Processed Image"
-                onerror="this.onerror=null;this.src='';this.parentNode.innerHTML+='<div class=\" error-message\">Ошибка
-            загрузки изображения
-        </div>'">
-    </div>
-    <div class="chart-container">
-        <h3>Распределение цветов:</h3>
-        <img src="data:image/png;base64,{{ processed_chart }}" alt="Processed Color Chart"
-            onerror="this.onerror=null;this.src='';this.parentNode.innerHTML+='<div class=\" error-message\">Ошибка
-        загрузки диаграммы
-    </div>'">
-    </div>
-    </div>
-    </div>
-
-    <a href="{{ url_for('index') }}" class="btn-back">Назад к загрузке</a>
-    </div>
+    <script>
+        function handleImageError(container) {
+            const img = container.querySelector('img');
+            if (img) {
+                img.style.display = 'none';
+            }
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'error-message';
+            errorMsg.textContent = 'Ошибка загрузки изображения';
+            container.appendChild(errorMsg);
+        }
+    </script>
 </body>
 
 </html>

@@ -26,7 +26,6 @@
         h1 {
             text-align: center;
             color: #333;
-            margin-bottom: 30px;
         }
 
         .form-group {
@@ -37,17 +36,16 @@
             display: block;
             margin-bottom: 8px;
             font-weight: bold;
-            color: #555;
         }
 
         input[type="file"],
-        select {
+        select,
+        input[type="color"] {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
             box-sizing: border-box;
-            font-size: 16px;
         }
 
         .color-picker {
@@ -59,13 +57,10 @@
         .color-picker input[type="color"] {
             width: 50px;
             height: 50px;
-            padding: 2px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
             cursor: pointer;
         }
 
-        button[type="submit"] {
+        button {
             width: 100%;
             padding: 12px;
             background: #4a76a8;
@@ -74,10 +69,9 @@
             border-radius: 4px;
             font-size: 16px;
             cursor: pointer;
-            margin-top: 10px;
         }
 
-        button[type="submit"]:hover {
+        button:hover {
             background: #3a5f8a;
         }
 
@@ -85,19 +79,11 @@
             padding: 12px;
             margin-bottom: 20px;
             border-radius: 4px;
-            font-size: 16px;
         }
 
         .alert-error {
             background: #ffebee;
             color: #c62828;
-            border: 1px solid #ef9a9a;
-        }
-
-        .alert-success {
-            background: #e8f5e9;
-            color: #2e7d32;
-            border: 1px solid #a5d6a7;
         }
 
         .g-recaptcha {
@@ -122,9 +108,8 @@
 
         <form method="POST" enctype="multipart/form-data">
             <div class="form-group">
-                <label for="file">Выберите изображение:</label>
+                <label for="file">Выберите изображение (PNG, JPG):</label>
                 <input type="file" id="file" name="file" accept=".png,.jpg,.jpeg" required>
-                <small>Поддерживаемые форматы: PNG, JPG, JPEG</small>
             </div>
 
             <div class="form-group">
@@ -145,7 +130,7 @@
 
             <div class="g-recaptcha" data-sitekey="{{ site_key }}"></div>
 
-            <button type="submit">Обработать изображение</button>
+            <button type="submit">Обработать</button>
         </form>
     </div>
 </body>
